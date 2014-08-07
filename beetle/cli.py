@@ -5,23 +5,43 @@ import sys
 import os
 
 
+class BeetlePluginImportError(Exception):
+    pass
+
+
 def render(config):
     builder = Builder(config)
     builder.run()
 
+def _parse_plugin_name(plugin_name):
+    return 'beetle_{0}'.format(plugin_name.replace('-', '_'))
 
 def main():
     config = Config.from_path('config.yaml')
 
-    commands = {
-        'render': render,
-    }
+    commands = [
+        {
+            'name': 'render',
+            'command': render,
+            'args': [
+                config
+            ],
+            'kwargs': {
+            },
+        },
+    ]
 
     for plugin in config.plugins:
-        a = importlib.import_module(plugin['name'])
-        commands.update(a.commands)
+        try:
+            a = importlib.import_module(_parse_plugin_name(plugin['name']))
+            commands.append(plugin)
+        except ImportError, e:
+            raise BeetlePluginImportError(e)
 
-    if len(sys.argv) > 1:
-        command = sys.argv[1]
-
-        commands[command](config)
+    for command in commands:
+        try:
+            command['command'](*command.get('args', []), **command.get('kwargs', {}))
+        except KeyError, e:
+            print 'Warning: "{0}" does not use the commands paradigm'.format(
+                command['name']
+            )
