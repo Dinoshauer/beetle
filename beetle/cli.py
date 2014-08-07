@@ -16,6 +16,13 @@ def render(config):
 def _parse_plugin_name(plugin_name):
     return 'beetle_{0}'.format(plugin_name.replace('-', '_'))
 
+def _load_command(plugin, module):
+    try:
+        return m.command
+    except AttributeError:
+        pass
+
+
 def main():
     config = Config.from_path('config.yaml')
 
@@ -33,8 +40,10 @@ def main():
 
     for plugin in config.plugins:
         try:
-            a = importlib.import_module(_parse_plugin_name(plugin['name']))
-            plugin['command'] = a.command
+            m = importlib.import_module(_parse_plugin_name(plugin['name']))
+            command = _load_command(m)
+            if command:
+                plugin['command'] = command
             commands.append(plugin)
         except ImportError, e:
             raise BeetlePluginImportError(e)
