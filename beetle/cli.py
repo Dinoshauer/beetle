@@ -34,6 +34,7 @@ def main():
     for plugin in config.plugins:
         try:
             a = importlib.import_module(_parse_plugin_name(plugin['name']))
+            plugin['command'] = a.command
             commands.append(plugin)
         except ImportError, e:
             raise BeetlePluginImportError(e)
